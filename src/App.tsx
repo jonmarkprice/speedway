@@ -1,6 +1,13 @@
 import * as React from "react";
 
 import {PerseusItemRenderer} from "./PerseusItemRenderer";
+import {
+    isHostedInShell,
+    itemElementId,
+    postToShell,
+    registerShellAPI,
+    scrollToItem,
+} from "./shell";
 
 import type {PerseusItem} from "@khanacademy/perseus-core";
 
@@ -53,6 +60,10 @@ function toItems(parsed: any): LabeledItem[] {
     return list.map((p) => ({item: normalize(p)}));
 }
 
+// Whether a native shell is hosting us. This cannot change during a page's
+// lifetime, so it is computed once rather than kept in state.
+const hosted = isHostedInShell();
+
 export function App(): React.ReactElement {
     const [items, setItems] = React.useState<LabeledItem[]>([]);
     const [error, setError] = React.useState<string | null>(null);
@@ -61,22 +72,39 @@ export function App(): React.ReactElement {
     const [loadKey, setLoadKey] = React.useState(0);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-    const loadJson = React.useCallback((raw: string, name: string) => {
-        try {
-            const parsed = JSON.parse(raw);
-            const parsedItems = toItems(parsed);
-            if (parsedItems.length === 0) {
-                setError("The file did not contain any Perseus items.");
-                return;
-            }
-            setItems(parsedItems);
-            setFileName(name);
-            setError(null);
-            setLoadKey((k) => k + 1);
-        } catch (e: any) {
-            setError(`Invalid JSON: ${e.message}`);
-        }
+    // Every failure path goes through here so the shell hears about it too.
+    const fail = React.useCallback((message: string) => {
+        setError(message);
+        postToShell({type: "error", message});
     }, []);
+
+    const loadJson = React.useCallback(
+        (raw: string, name: string) => {
+            try {
+                const parsed = JSON.parse(raw);
+                const parsedItems = toItems(parsed);
+                if (parsedItems.length === 0) {
+                    fail("The file did not contain any Perseus items.");
+                    return;
+                }
+                setItems(parsedItems);
+                setFileName(name);
+                setError(null);
+                setLoadKey((k) => k + 1);
+                postToShell({
+                    type: "loaded",
+                    name,
+                    items: parsedItems.map((it, index) => ({
+                        index,
+                        label: it.label ?? "",
+                    })),
+                });
+            } catch (e: any) {
+                fail(`Invalid JSON: ${e.message}`);
+            }
+        },
+        [fail],
+    );
 
     const handleFile = React.useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,19 +114,33 @@ export function App(): React.ReactElement {
             }
             const reader = new FileReader();
             reader.onload = () => loadJson(String(reader.result), file.name);
-            reader.onerror = () =>
-                setError(`Could not read file: ${file.name}`);
+            reader.onerror = () => fail(`Could not read file: ${file.name}`);
             reader.readAsText(file);
         },
-        [loadJson],
+        [loadJson, fail],
     );
 
     const loadSample = React.useCallback(() => {
         fetch("items.json")
             .then((r) => r.text())
             .then((raw) => loadJson(raw, "items.json (sample)"))
-            .catch((e) => setError(`Could not load sample: ${e.message}`));
-    }, [loadJson]);
+            .catch((e) => fail(`Could not load sample: ${e.message}`));
+    }, [loadJson, fail]);
+
+    // Expose the loaders to the native shell. Registered in an effect so the
+    // functions exist only while the app is mounted, and re-registered if the
+    // callbacks ever change identity.
+    React.useEffect(
+        () => registerShellAPI({loadJson, loadSample, scrollToItem}),
+        [loadJson, loadSample],
+    );
+
+    // Tell the shell we are mounted. This runs after the registration effect
+    // above (effects run in declaration order), so by the time the shell sees
+    // "ready" the API is in place. Harmless in a browser.
+    React.useEffect(() => {
+        postToShell({type: "ready"});
+    }, []);
 
     // Load the bundled sample on first mount so the grid isn't empty.
     React.useEffect(() => {
@@ -116,23 +158,33 @@ export function App(): React.ReactElement {
             </header>
 
             <div className="toolbar">
-                <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    Choose .json file…
-                </button>
-                <button type="button" className="btn" onClick={loadSample}>
-                    Load sample
-                </button>
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json,application/json"
-                    onChange={handleFile}
-                    style={{display: "none"}}
-                />
+                {/* The native shell has its own Open and Load sample buttons,
+                    so the web ones only appear in a plain browser. */}
+                {!hosted && (
+                    <>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            Choose .json file…
+                        </button>
+                        <button
+                            type="button"
+                            className="btn"
+                            onClick={loadSample}
+                        >
+                            Load sample
+                        </button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".json,application/json"
+                            onChange={handleFile}
+                            style={{display: "none"}}
+                        />
+                    </>
+                )}
                 {fileName && (
                     <span className="file-name">
                         {fileName} — {items.length}{" "}
@@ -148,7 +200,11 @@ export function App(): React.ReactElement {
             ) : (
                 <div className="item-grid">
                     {items.map(({item, label}, i) => (
-                        <section className="item-card" key={`${loadKey}-${i}`}>
+                        <section
+                            className="item-card"
+                            key={`${loadKey}-${i}`}
+                            id={itemElementId(i)}
+                        >
                             <div className="item-card-header">
                                 Item {i + 1}
                                 {label && (
@@ -161,6 +217,7 @@ export function App(): React.ReactElement {
                             <div className="item-card-body">
                                 <PerseusItemRenderer
                                     item={item}
+                                    index={i}
                                     renderKey={loadKey}
                                 />
                             </div>

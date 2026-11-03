@@ -12,11 +12,14 @@ import {scorePerseusItem} from "@khanacademy/perseus-score";
 import * as React from "react";
 
 import {dependenciesV2} from "./perseus-deps";
+import {postToShell} from "./shell";
 
 import type {PerseusItem, PerseusScore} from "@khanacademy/perseus-core";
 
 type Props = {
     item: PerseusItem;
+    // Position in the loaded list, so the shell can match scores to items.
+    index: number;
     // Bumped by the parent on each new render to force a fresh renderer.
     renderKey: number;
 };
@@ -34,7 +37,11 @@ function scoreText(score: PerseusScore): {text: string; ok: boolean} {
     };
 }
 
-export function PerseusItemRenderer({item, renderKey}: Props): React.ReactElement {
+export function PerseusItemRenderer({
+    item,
+    index,
+    renderKey,
+}: Props): React.ReactElement {
     const ref = React.useRef<any>(null);
     const [score, setScore] = React.useState<PerseusScore | null>(null);
     const [showSolutions, setShowSolutions] = React.useState<
@@ -54,11 +61,28 @@ export function PerseusItemRenderer({item, renderKey}: Props): React.ReactElemen
         if (result.type === "points") {
             setShowSolutions("selected");
         }
+        // Mirror the on-screen verdict to the shell so its sidebar can mark
+        // the item. "invalid" means the answer was incomplete, not wrong.
+        const {text, ok} = scoreText(result);
+        postToShell({
+            type: "score",
+            index,
+            result:
+                result.type === "invalid"
+                    ? "invalid"
+                    : ok
+                      ? "correct"
+                      : "incorrect",
+            earned: result.type === "points" ? result.earned : 0,
+            total: result.type === "points" ? result.total : 0,
+            message: text,
+        });
     };
 
     const handleReset = () => {
         setScore(null);
         setShowSolutions("none");
+        postToShell({type: "reset", index});
     };
 
     const summary = score ? scoreText(score) : null;

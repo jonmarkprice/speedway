@@ -50,6 +50,7 @@ The interesting bits, and why each is needed:
 | [`src/tex.tsx`](src/tex.tsx) | Real math rendering via `@khanacademy/mathjax-renderer`. |
 | [`src/PerseusItemRenderer.tsx`](src/PerseusItemRenderer.tsx) | Wraps `<ServerItemRenderer>` with the i18n context, the keypad context (for math-input widgets), and a Check/Reset UI that scores via `scorePerseusItem`. |
 | [`src/App.tsx`](src/App.tsx) | The file picker + two-column grid of item cards. Reads the chosen `.json` file, normalizes a single item or an array into a list, and renders one `PerseusItemRenderer` per item. |
+| [`src/shell.ts`](src/shell.ts) | The bridge to a native shell (see below). No-ops in a plain browser. |
 
 ### Gotchas worth knowing (these took the most digging)
 
@@ -65,3 +66,32 @@ The interesting bits, and why each is needed:
   variables that live in that stylesheet.
 - React is pinned to **exactly `18.2.0`** because several Wonder Blocks packages
   declare that as an exact peer dependency.
+
+## Swift shell
+
+The sibling repo `../perseus-swift` is a native macOS app (SwiftUI + WKWebView)
+that hosts the built bundle from this repo: Swift owns the window, the file
+picker, a sidebar of items and the toolbar, while the React code here keeps
+doing all of the rendering. Its `scripts/build-web.sh` runs `npm run build` in
+this directory and copies `dist/` into the Swift package's resources, so this
+repo needs nothing extra installed. Two things here exist for its benefit:
+
+- `vite.config.ts` sets `base: "./"` so `dist/index.html` references its assets
+  relatively. The shell serves the bundle from a custom `perseus://app/` origin,
+  where root-absolute `/assets/...` URLs would still resolve, but relative ones
+  also let `dist/` be served from any sub-path.
+- `src/shell.ts` is the bridge. When `window.webkit.messageHandlers.shell`
+  exists, the app registers `window.perseusShell = {loadJson, loadSample,
+  scrollToItem}` for Swift to call, posts `ready`, `loaded`, `error`, `score`
+  and `reset` messages back, and hides its own Choose/Load sample buttons
+  because the shell provides them. In a browser none of this is active. The
+  message shapes are documented in the Swift repo's README.
+
+### Fonts work offline
+
+Math is rendered by MathJax (CHTML output), which loads its fonts from a URL.
+Rather than the Khan Academy CDN, `src/tex.tsx` points at `./fonts/mathjax`,
+and [`public/fonts/mathjax`](public/fonts/mathjax) holds the 23 TeX `.woff`
+files copied from `node_modules/mathjax-full/es5/output/chtml/fonts/woff-v2/`.
+That way math renders with no network, which the Swift shell relies on. If you
+ever upgrade `mathjax-full`, copy the fonts again.
