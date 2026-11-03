@@ -1,0 +1,143 @@
+import AppKit
+import SwiftUI
+import UniformTypeIdentifiers
+
+/// The window: a sidebar of items on the left, the web view on the right, and
+/// a toolbar that replaces the web app's own file buttons.
+struct ContentView: View {
+    @ObservedObject var model: ShellModel
+    let webBundle: Result<URL, WebBundle.MissingError>
+
+    @State private var selection: Int?
+
+    var body: some View {
+        NavigationSplitView {
+            sidebar
+                .navigationSplitViewColumnWidth(min: 200, ideal: 260)
+        } detail: {
+            switch webBundle {
+            case let .success(webRoot):
+                WebView(model: model, webRoot: webRoot)
+            case let .failure(error):
+                MissingBundleView(message: error.localizedDescription)
+            }
+        }
+        .navigationTitle("Perseus Renderer")
+        .navigationSubtitle(model.subtitle)
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button("Open…", systemImage: "folder", action: openFile)
+                    .help("Open a Perseus .json file")
+                Button("Load sample", systemImage: "doc.text", action: model.loadSample)
+                    .help("Load the bundled items.json")
+            }
+        }
+        .onChange(of: selection) { _, index in
+            // Selecting a row is how the user jumps to that item in the page.
+            if let index {
+                model.scrollToItem(index)
+            }
+        }
+        .onChange(of: model.items) {
+            // A new file invalidates the old selection, and the page has
+            // scrolled back to the top on its own.
+            selection = nil
+        }
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if model.items.isEmpty {
+                Text("No items loaded")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(model.items, selection: $selection) { item in
+                    ItemRow(item: item, score: model.scores[item.index])
+                }
+                .listStyle(.sidebar)
+            }
+            if let error = model.lastError {
+                Divider()
+                Text(error)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .padding(10)
+            }
+        }
+    }
+
+    /// Reads the chosen file here, in Swift, and hands the text to the page.
+    /// A modal panel keeps the flow synchronous and avoids juggling callbacks.
+    private func openFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = "Choose a Perseus item, an array of items, or an exercise export"
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+        do {
+            let raw = try String(contentsOf: url, encoding: .utf8)
+            model.loadJson(raw: raw, name: url.lastPathComponent)
+        } catch {
+            model.lastError = "Could not read \(url.lastPathComponent): \(error.localizedDescription)"
+        }
+    }
+}
+
+/// One sidebar row: the item's name and, once checked, a ✓ or ✗ whose tooltip
+/// is the score message the page showed.
+private struct ItemRow: View {
+    let item: ShellItem
+    let score: ItemScore?
+
+    var body: some View {
+        HStack {
+            Text(item.displayName)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+            if let score {
+                Text(score.result == .correct ? "✓" : "✗")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(color(for: score.result))
+                    .accessibilityLabel(score.result.rawValue)
+            }
+        }
+        .tag(item.index)
+        .help(score?.message ?? item.displayName)
+    }
+
+    /// Orange for "invalid" distinguishes an incomplete answer from a wrong one.
+    private func color(for result: ItemScore.Result) -> Color {
+        switch result {
+        case .correct: .green
+        case .incorrect: .red
+        case .invalid: .orange
+        }
+    }
+}
+
+/// Shown instead of the web view when scripts/build-web.sh has not been run.
+private struct MissingBundleView: View {
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))
+                .foregroundStyle(.orange)
+            Text("Web bundle not found")
+                .font(.title2.weight(.semibold))
+            Text(message)
+                .multilineTextAlignment(.center)
+                .textSelection(.enabled)
+                .frame(maxWidth: 520)
+        }
+        .padding(40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}

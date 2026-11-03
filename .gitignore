@@ -1,0 +1,8 @@
+.build/
+.swiftpm/
+*.xcodeproj
+*.xcworkspace
+.DS_Store
+# The built web bundle comes from ../perseus-renderer via scripts/build-web.sh
+# and is never committed; run the script before `swift run`.
+Sources/PerseusShell/Resources/Web/
