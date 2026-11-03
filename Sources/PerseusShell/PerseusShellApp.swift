@@ -30,6 +30,16 @@ struct PerseusShellApp: App {
                 .frame(minWidth: 900, minHeight: 600)
         }
         .defaultSize(width: 1280, height: 860)
+        .commands {
+            // A single-window tool has no use for File > New Window, so Open…
+            // and Load Sample take that slot, with the shortcuts users expect.
+            CommandGroup(replacing: .newItem) {
+                Button("Open…") { model.openFile() }
+                    .keyboardShortcut("o", modifiers: .command)
+                Button("Load Sample") { model.loadSample() }
+                    .keyboardShortcut("l", modifiers: .command)
+            }
+        }
     }
 }
 

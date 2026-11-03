@@ -26,7 +26,7 @@ struct ContentView: View {
         .navigationSubtitle(model.subtitle)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button("Open…", systemImage: "folder", action: openFile)
+                Button("Open…", systemImage: "folder", action: model.openFile)
                     .help("Open a Perseus .json file")
                 Button("Load sample", systemImage: "doc.text", action: model.loadSample)
                     .help("Load the bundled items.json")
@@ -65,25 +65,6 @@ struct ContentView: View {
                     .textSelection(.enabled)
                     .padding(10)
             }
-        }
-    }
-
-    /// Reads the chosen file here, in Swift, and hands the text to the page.
-    /// A modal panel keeps the flow synchronous and avoids juggling callbacks.
-    private func openFile() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.json]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.message = "Choose a Perseus item, an array of items, or an exercise export"
-        guard panel.runModal() == .OK, let url = panel.url else {
-            return
-        }
-        do {
-            let raw = try String(contentsOf: url, encoding: .utf8)
-            model.loadJson(raw: raw, name: url.lastPathComponent)
-        } catch {
-            model.lastError = "Could not read \(url.lastPathComponent): \(error.localizedDescription)"
         }
     }
 }

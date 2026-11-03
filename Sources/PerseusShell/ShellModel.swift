@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import WebKit
 
@@ -142,6 +143,27 @@ final class ShellModel: ObservableObject {
     func loadJson(raw: String, name: String) {
         Diagnostics.stdout("bridge -> loadJson(\(Self.jsonLine(name)), \(raw.utf8.count) bytes)")
         call("loadJson", arguments: [raw, name])
+    }
+
+    /// Asks for a .json file with the standard open panel, reads it here, in
+    /// Swift, and hands the text to the page. Both the toolbar button and the
+    /// File menu's Open… call this, so the two never drift apart. A modal
+    /// panel keeps the flow synchronous and avoids juggling callbacks.
+    func openFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = "Choose a Perseus item, an array of items, or an exercise export"
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+        do {
+            let raw = try String(contentsOf: url, encoding: .utf8)
+            loadJson(raw: raw, name: url.lastPathComponent)
+        } catch {
+            lastError = "Could not read \(url.lastPathComponent): \(error.localizedDescription)"
+        }
     }
 
     func loadSample() {
