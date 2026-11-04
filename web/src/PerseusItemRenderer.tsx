@@ -100,10 +100,7 @@ export function PerseusItemRenderer({
                                 problemNum={0}
                                 item={item}
                                 dependencies={dependenciesV2}
-                                apiOptions={{
-                                    isMobile: false,
-                                    showSolutions,
-                                }}
+                                apiOptions={{isMobile: false}}
                                 keypadElement={keypadElement}
                                 showSolutions={showSolutions}
                             />

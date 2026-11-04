@@ -23,8 +23,6 @@ export const dependencies: PerseusDependencies = {
     // and "https://cdn.kastatic.org/…". We pass URLs through unchanged.
     staticUrl: ((str?: string | null) => str ?? "") as any,
 
-    useVideo: () => ({status: "loading"}),
-
     InitialRequestUrl: {
         origin: "https://www.khanacademy.org",
         host: "www.khanacademy.org",

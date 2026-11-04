@@ -21,7 +21,6 @@ function normalize(parsed: any): PerseusItem {
         return {
             answerArea: parsed.answerArea ?? null,
             hints: parsed.hints ?? [],
-            itemDataVersion: parsed.itemDataVersion ?? {major: 0, minor: 1},
             ...parsed,
         };
     }
@@ -30,7 +29,6 @@ function normalize(parsed: any): PerseusItem {
         question: parsed,
         answerArea: null,
         hints: [],
-        itemDataVersion: {major: 0, minor: 1},
     };
 }
 
