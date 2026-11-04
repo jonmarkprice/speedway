@@ -7,7 +7,7 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 # Override with PERSEUS_RENDERER_DIR if the web repo lives somewhere else.
 web_src="${PERSEUS_RENDERER_DIR:-$here/../perseus-renderer}"
-dest="$here/Sources/PerseusShell/Resources/Web"
+dest="$here/Sources/PerseusShellKit/Resources/Web"
 
 if [[ ! -f "$web_src/package.json" ]]; then
     echo "build-web.sh: no perseus-renderer checkout at $web_src" >&2

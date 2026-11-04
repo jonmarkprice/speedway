@@ -5,9 +5,10 @@ Swift owns the window, the Open panel, a sidebar of items and the toolbar;
 the React app, hosted in a `WKWebView`, keeps doing all of the rendering and
 scoring. The two sides talk over a small JavaScript bridge described below.
 
-It is a plain Swift package (no Xcode project) so it builds with just the
-command line tools: `swift build` / `swift run` with Swift 6.3 on macOS 14 or
-later.
+Day to day it is a plain Swift package: `swift build` / `swift run` with Swift
+6.3 on macOS 14 or later, no Xcode project needed. A thin Xcode project in
+`App/` wraps the same code as a signed, notarized `Speedway.app` for sharing;
+see [Distributing Speedway.app](#distributing-speedwayapp).
 
 ## Build and run
 
@@ -21,7 +22,7 @@ swift run                 # builds and launches PerseusShell
 ```
 
 `scripts/build-web.sh` copies `../perseus-renderer/dist/` into
-`Sources/PerseusShell/Resources/Web/` (git-ignored). Re-run it after any change
+`Sources/PerseusShellKit/Resources/Web/` (git-ignored). Re-run it after any change
 to the web app; `swift run` picks the new files up on the next build. If the
 web repo lives elsewhere, set `PERSEUS_RENDERER_DIR=/path/to/perseus-renderer`.
 
@@ -37,14 +38,22 @@ the scheme handler serves, which is the quickest way to debug a missing asset.
 
 | File | Role |
 |------|------|
-| `Package.swift` | One executable target, `PerseusShell`, macOS 14+. Copies the `Resources` directory (which contains `Web/`) into the resource bundle. |
+| `Package.swift` | macOS 14+. A `PerseusShellKit` library with all the app code, which copies the `Resources` directory (which contains `Web/`) into its resource bundle, and a `PerseusShell` executable for `swift run`. |
 | `scripts/build-web.sh` | Builds the web app and rsyncs `dist/` into `Resources/Web/`. Refuses a bundle whose `index.html` has root-absolute asset paths. |
-| `Sources/PerseusShell/PerseusShellApp.swift` | The SwiftUI `App`. Its `AppDelegate` sets the activation policy to `.regular` and activates the app, because a SwiftPM executable has no app bundle and would otherwise start behind the terminal with no Dock icon. |
+| `scripts/package-app.sh` | Archives, signs, notarizes and zips `Speedway.app`. See [Distributing Speedway.app](#distributing-speedwayapp). |
+| `Sources/PerseusShell/PerseusShellApp.swift` | The `swift run` entry point: a `@main` App whose body is `PerseusShellScene`. |
+| `App/Speedway.xcodeproj`, `App/Speedway/` | The `Speedway.app` target: an identical `@main` App (`SpeedwayApp.swift`), entitlements, and signing settings. It links `PerseusShellKit` from the package at `..`. |
+
+Under `Sources/PerseusShellKit/`:
+
+| File | Role |
+|------|------|
+| `PerseusShellScene.swift` | The window and menu commands, shared by both entry points. Its `PerseusShellAppDelegate` quits when the window closes and, only when running as a bare binary, sets the activation policy to `.regular` and activates the app, because a SwiftPM executable has no app bundle and would otherwise start behind the terminal with no Dock icon. |
 | `ContentView.swift` | `NavigationSplitView`: sidebar list of items (✓/✗ once scored, score message as tooltip), toolbar with Open… and Load sample, window subtitle with file name and item count. |
 | `WebView.swift` | `NSViewRepresentable` around `WKWebView`. Registers the scheme handler and the `shell` message handler, enables the inspector, loads `perseus://app/index.html`. |
 | `PerseusSchemeHandler.swift` | `WKURLSchemeHandler` for `perseus://app/<path>`: maps to files in the `Web` folder, sets MIME types, returns a real 404 for anything missing. |
 | `ShellModel.swift` | `ObservableObject` holding items, scores, file name and errors; decodes incoming messages; sends `loadJson`, `loadSample`, `scrollToItem` to the page. |
-| `WebBundle.swift` | Finds `Resources/Web/index.html` in `Bundle.module` or produces the "run build-web.sh" error. |
+| `WebBundle.swift` | Finds `Resources/Web/index.html` in `Bundle.module` (flat when built by SwiftPM, `Contents/Resources` when built by Xcode) or produces the "run build-web.sh" error. |
 | `Diagnostics.swift` | Unbuffered stdout/stderr logging so lines survive the process being killed. |
 
 ## How the bridge works
@@ -102,14 +111,58 @@ from `mathjax-full`) in its `public/` folder, so the fonts travel with the
 bundle and the shell needs no network at all. Perseus content that references
 images on the Khan Academy CDN still needs a connection for those images.
 
-## Switching to an Xcode project later
+## Distributing Speedway.app
 
-Nothing here depends on SwiftPM specifically. If you want an app bundle (icon,
-Info.plist, signing, a `.app` to double-click), point the tools at Xcode with
-`sudo xcode-select -s /Applications/Xcode.app`, then either open `Package.swift`
-directly in Xcode and add an App target that depends on the `PerseusShell`
-sources, or generate a project with [xcodegen](https://github.com/yonaskolb/XcodeGen)
-from a short `project.yml` listing `Sources/PerseusShell` and the `Resources`
-folder. The scheme handler, bridge and model carry over unchanged; the only
-thing to drop is the `AppDelegate` activation-policy workaround, which a real
-bundle makes unnecessary.
+`scripts/package-app.sh` produces `build/Speedway-<version>.zip`: a universal
+(Apple silicon and Intel) `Speedway.app`, signed with the team's Developer ID
+certificate, notarized by Apple and stapled, so coworkers can unzip it and open
+it with no Gatekeeper warning. It runs entirely from the command line:
+
+1. `scripts/build-web.sh`, so the app never ships stale web assets.
+2. `xcodebuild archive` of the `Speedway` scheme with automatic signing.
+3. `xcodebuild -exportArchive` with the `developer-id` method, which re-signs
+   with the Developer ID Application certificate.
+4. `xcrun notarytool submit --wait`, then `stapler staple`, then a fresh zip.
+
+Pass `--skip-notarize` to stop after signing.
+
+### Without an Apple account: `--ad-hoc`
+
+`scripts/package-app.sh --ad-hoc` skips Developer ID signing and notarization
+and signs the app ad hoc instead. That needs no Apple account, team
+membership, certificate or provisioning profile. It writes
+`build/Speedway-<version>-adhoc.zip`.
+
+The catch is on the recipient's side: Gatekeeper rejects the app, so the first
+time they open each build they must go to System Settings > Privacy & Security
+and click **Open Anyway**, then enter their password. Every new build you send
+needs this again, and managed Macs may not allow it at all.
+
+The app is identified as `org.khanacademy.speedway.swiftui` on team
+`T79C3JU3NR`. It runs in the App Sandbox with Hardened Runtime, and its
+entitlements (`App/Speedway/Speedway.entitlements`) allow outgoing network
+connections (Khan Academy CDN images) and reading files the user picks in the
+Open panel.
+
+### One-time setup
+
+1. Use the full Xcode, not the command line tools:
+   `sudo xcode-select -s /Applications/Xcode-26.6.0.app`, or set `DEVELOPER_DIR`.
+2. In Xcode > Settings > Accounts, sign in with an Apple ID on the team. Your
+   role must allow Developer ID signing (Account Holder, or an Admin granted
+   access to Developer ID certificates).
+3. Store notarization credentials in the keychain. This needs an app-specific
+   password from [account.apple.com](https://account.apple.com):
+
+   ```bash
+   xcrun notarytool store-credentials speedway-notary --apple-id you@khanacademy.org --team-id T79C3JU3NR
+   ```
+
+   Set `NOTARY_PROFILE` if you stored it under a different name.
+
+### Building or running from Xcode
+
+`App/Speedway.xcodeproj` also opens in Xcode, where Run builds and launches the
+real app bundle. Its app target contains only the entry point and
+entitlements; all code lives in `PerseusShellKit`, so edits there show up in
+both `swift run` and Xcode builds.

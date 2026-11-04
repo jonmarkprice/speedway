@@ -1,8 +1,11 @@
 .build/
 .swiftpm/
-*.xcodeproj
+# App/Speedway.xcodeproj is committed; only Xcode's per-user state is not.
+xcuserdata/
 *.xcworkspace
 .DS_Store
+# scripts/package-app.sh writes the archive, exported app and zip here.
+build/
 # The built web bundle comes from ../perseus-renderer via scripts/build-web.sh
 # and is never committed; run the script before `swift run`.
-Sources/PerseusShell/Resources/Web/
+Sources/PerseusShellKit/Resources/Web/
