@@ -2,13 +2,42 @@
     box-sizing: border-box;
 }
 
+/*
+ * Wonder Blocks (and therefore Perseus) sizes everything in rem and assumes
+ * Khan Academy's global root font size of 62.5%, i.e. 1rem = 10px. Without
+ * this, every token is 1.6x too large: 16px body text renders at 25.6px,
+ * choice padding balloons, etc.
+ */
+html {
+    font-size: 62.5%;
+}
+
 body {
     margin: 0;
     font-family:
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
         sans-serif;
+    /* Back to a 16px default for ordinary text. */
+    font-size: 1.6rem;
+    line-height: 1.5;
     color: #21242c;
     background: #f7f8fa;
+}
+
+/*
+ * Khan Academy's site ships a global reset that Perseus relies on; its radio
+ * widget renders a <fieldset>/<legend> and expects the browser's default
+ * groove border and inset padding to be gone.
+ */
+fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
+
+legend {
+    padding: 0;
 }
 
 .app {
@@ -81,24 +110,6 @@ body {
 
 .item-card-body {
     padding: 20px;
-}
-
-/*
- * Perseus renders radio/checkbox choices at 32px, which dwarfs the 18px
- * question text. Scale the choices down to match. Scoped to our cards and
- * keyed off the stable role attribute (the aphrodite class is auto-generated
- * and changes between Perseus versions). The math inside scales with it since
- * it's sized in em units.
- */
-.item-card-body .perseus-widget-container li[role="listitem"] {
-    font-size: 18px;
-}
-
-/* Shrink the round A/B/C (and checkbox) option buttons to match. */
-.item-card-body .perseus-widget-container li[role="listitem"] > button {
-    width: 34px;
-    height: 34px;
-    font-size: 14px;
 }
 
 .empty {
