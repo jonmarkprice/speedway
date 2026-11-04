@@ -1,0 +1,208 @@
+[
+    {
+        "question": {
+            "content": "If $x = 3$, what is the value of $2x + 4$?\n\n[[☃ numeric-input 1]]\n\nAnd which of these equals $4$?\n\n[[☃ radio 1]]",
+            "images": {},
+            "widgets": {
+                "numeric-input 1": {
+                    "type": "numeric-input",
+                    "graded": true,
+                    "options": {
+                        "answers": [
+                            {
+                                "value": 10,
+                                "status": "correct",
+                                "maxError": 0,
+                                "strict": false,
+                                "simplify": "required",
+                                "message": ""
+                            }
+                        ],
+                        "size": "normal",
+                        "coefficient": false
+                    },
+                    "version": {"major": 0, "minor": 0}
+                },
+                "radio 1": {
+                    "type": "radio",
+                    "graded": true,
+                    "options": {
+                        "choices": [
+                            {"content": "$2 + 1$"},
+                            {"content": "$2 + 2$", "correct": true},
+                            {"content": "$2 + 3$"}
+                        ],
+                        "randomize": false,
+                        "multipleSelect": false,
+                        "countChoices": false,
+                        "deselectEnabled": false
+                    },
+                    "version": {"major": 1, "minor": 0}
+                }
+            }
+        },
+        "answerArea": {
+            "calculator": false,
+            "chi2Table": false,
+            "periodicTable": false,
+            "tTable": false,
+            "zTable": false
+        },
+        "hints": [
+            {
+                "content": "Substitute $x = 3$ into the expression.",
+                "images": {},
+                "widgets": {}
+            },
+            {
+                "content": "$2(3) + 4 = 6 + 4 = 10$.",
+                "images": {},
+                "widgets": {}
+            }
+        ],
+        "itemDataVersion": {"major": 0, "minor": 1}
+    },
+    {
+        "question": {
+            "content": "What is $7 \\times 8$?\n\n[[☃ numeric-input 1]]",
+            "images": {},
+            "widgets": {
+                "numeric-input 1": {
+                    "type": "numeric-input",
+                    "graded": true,
+                    "options": {
+                        "answers": [
+                            {
+                                "value": 56,
+                                "status": "correct",
+                                "maxError": 0,
+                                "strict": false,
+                                "simplify": "required",
+                                "message": ""
+                            }
+                        ],
+                        "size": "normal",
+                        "coefficient": false
+                    },
+                    "version": {"major": 0, "minor": 0}
+                }
+            }
+        },
+        "answerArea": {
+            "calculator": false,
+            "chi2Table": false,
+            "periodicTable": false,
+            "tTable": false,
+            "zTable": false
+        },
+        "hints": [
+            {
+                "content": "$7 \\times 8 = 7 \\times 8 = 56$.",
+                "images": {},
+                "widgets": {}
+            }
+        ],
+        "itemDataVersion": {"major": 0, "minor": 1}
+    },
+    {
+        "question": {
+            "content": "Select the prime numbers.\n\n[[☃ radio 1]]",
+            "images": {},
+            "widgets": {
+                "radio 1": {
+                    "type": "radio",
+                    "graded": true,
+                    "options": {
+                        "choices": [
+                            {"content": "$9$"},
+                            {"content": "$11$", "correct": true},
+                            {"content": "$15$"},
+                            {"content": "$17$", "correct": true}
+                        ],
+                        "randomize": false,
+                        "multipleSelect": true,
+                        "countChoices": false,
+                        "deselectEnabled": false
+                    },
+                    "version": {"major": 1, "minor": 0}
+                }
+            }
+        },
+        "answerArea": {
+            "calculator": false,
+            "chi2Table": false,
+            "periodicTable": false,
+            "tTable": false,
+            "zTable": false
+        },
+        "hints": [
+            {
+                "content": "A prime number has exactly two factors: $1$ and itself.",
+                "images": {},
+                "widgets": {}
+            }
+        ],
+        "itemDataVersion": {"major": 0, "minor": 1}
+    },
+    {
+        "question": {
+            "content": "Simplify $\\dfrac{6}{9}$ to lowest terms.\n\n[[☃ numeric-input 1]] / [[☃ numeric-input 2]]",
+            "images": {},
+            "widgets": {
+                "numeric-input 1": {
+                    "type": "numeric-input",
+                    "graded": true,
+                    "options": {
+                        "answers": [
+                            {
+                                "value": 2,
+                                "status": "correct",
+                                "maxError": 0,
+                                "strict": false,
+                                "simplify": "required",
+                                "message": ""
+                            }
+                        ],
+                        "size": "small",
+                        "coefficient": false
+                    },
+                    "version": {"major": 0, "minor": 0}
+                },
+                "numeric-input 2": {
+                    "type": "numeric-input",
+                    "graded": true,
+                    "options": {
+                        "answers": [
+                            {
+                                "value": 3,
+                                "status": "correct",
+                                "maxError": 0,
+                                "strict": false,
+                                "simplify": "required",
+                                "message": ""
+                            }
+                        ],
+                        "size": "small",
+                        "coefficient": false
+                    },
+                    "version": {"major": 0, "minor": 0}
+                }
+            }
+        },
+        "answerArea": {
+            "calculator": false,
+            "chi2Table": false,
+            "periodicTable": false,
+            "tTable": false,
+            "zTable": false
+        },
+        "hints": [
+            {
+                "content": "Divide the numerator and denominator by their greatest common factor, $3$.",
+                "images": {},
+                "widgets": {}
+            }
+        ],
+        "itemDataVersion": {"major": 0, "minor": 1}
+    }
+]

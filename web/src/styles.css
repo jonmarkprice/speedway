@@ -1,0 +1,175 @@
+* {
+    box-sizing: border-box;
+}
+
+/*
+ * Wonder Blocks (and therefore Perseus) sizes everything in rem and assumes
+ * Khan Academy's global root font size of 62.5%, i.e. 1rem = 10px. Without
+ * this, every token is 1.6x too large: 16px body text renders at 25.6px,
+ * choice padding balloons, etc.
+ */
+html {
+    font-size: 62.5%;
+}
+
+body {
+    margin: 0;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+        sans-serif;
+    /* Back to a 16px default for ordinary text. */
+    font-size: 1.6rem;
+    line-height: 1.5;
+    color: #21242c;
+    background: #f7f8fa;
+}
+
+/*
+ * Khan Academy's site ships a global reset that Perseus relies on; its radio
+ * widget renders a <fieldset>/<legend> and expects the browser's default
+ * groove border and inset padding to be gone.
+ */
+fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
+
+legend {
+    padding: 0;
+}
+
+.app {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 24px 48px;
+}
+
+.app-header h1 {
+    margin: 8px 0 4px;
+    font-size: 22px;
+}
+
+.app-header p {
+    margin: 0 0 16px;
+    color: #5c6066;
+    font-size: 14px;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.file-name {
+    font-size: 13px;
+    color: #5c6066;
+}
+
+.item-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .item-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.item-card {
+    background: #fff;
+    border: 1px solid #e3e5e8;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.item-card-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e3e5e8;
+    background: #fafbfc;
+    font-weight: 600;
+    font-size: 13px;
+    color: #5c6066;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.item-card-label {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #8a9099;
+}
+
+.item-card-body {
+    padding: 20px;
+}
+
+.empty {
+    color: #9a9da3;
+}
+
+.error {
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    background: #fdecea;
+    color: #b3261e;
+    font-size: 13px;
+    border: 1px solid #f5c6c0;
+    border-radius: 6px;
+}
+
+.controls {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #eef0f2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.score {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.score-ok {
+    color: #0a7b3e;
+}
+
+.score-bad {
+    color: #b3261e;
+}
+
+.btn {
+    appearance: none;
+    border: 1px solid #d6d8db;
+    background: #fff;
+    color: #21242c;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #f0f1f3;
+}
+
+.btn-primary {
+    background: #1865f2;
+    border-color: #1865f2;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #1a5cd8;
+}
