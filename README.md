@@ -1,6 +1,6 @@
 # Perseus Swift shell
 
-A native macOS shell for the [Perseus renderer](../perseus-renderer) web app.
+A native macOS shell for the Perseus renderer web app in [`web/`](web).
 Swift owns the window, the Open panel, a sidebar of items and the toolbar;
 the React app, hosted in a `WKWebView`, keeps doing all of the rendering and
 scoring. The two sides talk over a small JavaScript bridge described below.
@@ -12,19 +12,18 @@ see [Distributing Speedway.app](#distributing-speedwayapp).
 
 ## Build and run
 
-The web bundle is not committed. Build it from the sibling repo first, then run
-the app:
+The built web bundle is not committed. Build it from `web/` first, then run the
+app:
 
 ```bash
-# Once, in ../perseus-renderer: npm install
-./scripts/build-web.sh    # npm run build in ../perseus-renderer, rsync dist/ into the package
+(cd web && npm install)   # once
+./scripts/build-web.sh    # npm run build in web/, rsync dist/ into the package
 swift run                 # builds and launches PerseusShell
 ```
 
-`scripts/build-web.sh` copies `../perseus-renderer/dist/` into
+`scripts/build-web.sh` copies `web/dist/` into
 `Sources/PerseusShellKit/Resources/Web/` (git-ignored). Re-run it after any change
-to the web app; `swift run` picks the new files up on the next build. If the
-web repo lives elsewhere, set `PERSEUS_RENDERER_DIR=/path/to/perseus-renderer`.
+to the web app; `swift run` picks the new files up on the next build.
 
 If you forget the script the app still launches, but the detail pane shows a
 "Web bundle not found" message with the expected path (also printed to stderr)
@@ -101,7 +100,7 @@ decoded, so you can verify the whole stack without the UI:
 | `{type: "score", index, result, earned, total, message}` | Check answer was clicked. `result` is `"correct"`, `"incorrect"` or `"invalid"` (incomplete answer); `message` is the text the page shows and becomes the sidebar tooltip. | |
 | `{type: "reset", index}` | Reset was clicked; the sidebar clears that item's mark. | |
 
-The TypeScript side of this contract is `src/shell.ts` in perseus-renderer.
+The TypeScript side of this contract is [`web/src/shell.ts`](web/src/shell.ts).
 
 ## Fonts work offline
 

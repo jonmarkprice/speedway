@@ -10,8 +10,7 @@ answer** button that scores your input.
 ## Run it
 
 ```bash
-git clone https://github.com/jennylihan/perseus-renderer.git
-cd perseus-renderer
+cd web
 npm install
 npm run dev
 ```
@@ -69,12 +68,12 @@ The interesting bits, and why each is needed:
 
 ## Swift shell
 
-The sibling repo `../perseus-swift` is a native macOS app (SwiftUI + WKWebView)
-that hosts the built bundle from this repo: Swift owns the window, the file
+The Swift package at the root of this repo is a native macOS app (SwiftUI +
+WKWebView) that hosts the built bundle from this directory: Swift owns the window, the file
 picker, a sidebar of items and the toolbar, while the React code here keeps
 doing all of the rendering. Its `scripts/build-web.sh` runs `npm run build` in
 this directory and copies `dist/` into the Swift package's resources, so this
-repo needs nothing extra installed. Two things here exist for its benefit:
+directory needs nothing extra installed. Two things here exist for its benefit:
 
 - `vite.config.ts` sets `base: "./"` so `dist/index.html` references its assets
   relatively. The shell serves the bundle from a custom `perseus://app/` origin,
@@ -85,7 +84,7 @@ repo needs nothing extra installed. Two things here exist for its benefit:
   scrollToItem}` for Swift to call, posts `ready`, `loaded`, `error`, `score`
   and `reset` messages back, and hides its own Choose/Load sample buttons
   because the shell provides them. In a browser none of this is active. The
-  message shapes are documented in the Swift repo's README.
+  message shapes are documented in the top-level README.
 
 ### Fonts work offline
 

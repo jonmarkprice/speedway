@@ -6,6 +6,6 @@ xcuserdata/
 .DS_Store
 # scripts/package-app.sh writes the archive, exported app and zip here.
 build/
-# The built web bundle comes from ../perseus-renderer via scripts/build-web.sh
+# The built web bundle comes from web/ via scripts/build-web.sh
 # and is never committed; run the script before `swift run`.
 Sources/PerseusShellKit/Resources/Web/

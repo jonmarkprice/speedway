@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-# Builds the React app in the sibling perseus-renderer repo and copies its dist/
-# into this package's resources, where the scheme handler serves it from
+# Builds the React app in web/ and copies its dist/ into this package's
+# resources, where the scheme handler serves it from
 # perseus://app/. Run this before `swift run`, and again after web changes.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
-# Override with PERSEUS_RENDERER_DIR if the web repo lives somewhere else.
-web_src="${PERSEUS_RENDERER_DIR:-$here/../perseus-renderer}"
+web_src="$here/web"
 dest="$here/Sources/PerseusShellKit/Resources/Web"
 
 if [[ ! -f "$web_src/package.json" ]]; then
-    echo "build-web.sh: no perseus-renderer checkout at $web_src" >&2
-    echo "  Set PERSEUS_RENDERER_DIR to the web repo's path." >&2
+    echo "build-web.sh: no web app at $web_src" >&2
     exit 1
 fi
 if [[ ! -d "$web_src/node_modules" ]]; then

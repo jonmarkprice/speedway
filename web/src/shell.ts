@@ -1,6 +1,6 @@
 /**
  * The bridge between this web app and a native shell that hosts it in a
- * WKWebView (see the sibling perseus-swift repo).
+ * WKWebView (the Swift package at the root of this repo).
  *
  * Direction 1, Swift to JavaScript: the shell calls the functions it finds on
  * `window.perseusShell` via `evaluateJavaScript`. The React app registers its

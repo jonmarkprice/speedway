@@ -10,7 +10,7 @@ enum WebBundle {
         var errorDescription: String? {
             """
             The web bundle is missing: no index.html at \(expectedPath).
-            Run scripts/build-web.sh (which builds ../perseus-renderer and copies \
+            Run scripts/build-web.sh (which builds web/ and copies \
             its dist/ into Sources/PerseusShellKit/Resources/Web), then build again.
             """
         }

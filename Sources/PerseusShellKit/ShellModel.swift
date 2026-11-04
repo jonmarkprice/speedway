@@ -31,7 +31,7 @@ struct ItemScore: Hashable {
 }
 
 /// A message posted by the web app via `webkit.messageHandlers.shell`. The
-/// shapes mirror `ShellMessage` in perseus-renderer/src/shell.ts.
+/// shapes mirror `ShellMessage` in web/src/shell.ts.
 enum ShellMessage {
     case ready
     case loaded(name: String, items: [ShellItem])
