@@ -135,11 +135,17 @@ it with no Gatekeeper warning. It runs entirely from the command line:
 
 1. `scripts/build-web.sh`, so the app never ships stale web assets.
 2. `xcodebuild archive` of the `Speedway` scheme with automatic signing.
-3. `xcodebuild -exportArchive` with the `developer-id` method, which re-signs
-   with the Developer ID Application certificate.
-4. `xcrun notarytool submit --wait`, then `stapler staple`, then a fresh zip.
+3. `xcodebuild -exportArchive` with the `developer-id` method and the `upload`
+   destination, which re-signs with the Developer ID Application certificate
+   and submits the app to Apple's notary service using your Xcode account, as
+   the Organizer's Direct Distribution does.
+4. `xcodebuild -exportNotarizedApp`, polled every 30 seconds until Apple
+   accepts the app (timeout `NOTARIZE_TIMEOUT`, default 1800 seconds). It
+   writes the notarized app with its ticket stapled; the script then checks it
+   with `stapler validate` and `spctl` and zips it.
 
-Pass `--skip-notarize` to stop after signing.
+Pass `--skip-notarize` to stop after signing. A rejected upload currently
+shows up as a timeout; the reason is in Xcode's Organizer.
 
 ### Without an Apple account: `--ad-hoc`
 
@@ -163,17 +169,11 @@ Open panel.
 
 1. Use the full Xcode, not the command line tools:
    `sudo xcode-select -s /Applications/Xcode-26.6.0.app`, or set `DEVELOPER_DIR`.
-2. In Xcode > Settings > Accounts, sign in with an Apple ID on the team. Your
-   role must allow Developer ID signing (Account Holder, or an Admin granted
-   access to Developer ID certificates).
-3. Store notarization credentials in the keychain. This needs an app-specific
-   password from [account.apple.com](https://account.apple.com):
-
-   ```bash
-   xcrun notarytool store-credentials speedway-notary --apple-id you@khanacademy.org --team-id T79C3JU3NR
-   ```
-
-   Set `NOTARY_PROFILE` if you stored it under a different name.
+2. In Xcode > Settings > Accounts, sign in with an Apple ID on the team that
+   has access to the team's cloud-managed Developer ID certificate. Access to
+   the cloud-managed *Distribution* certificate is a different permission and
+   is not enough. Signing and notarization both use this account; no
+   `notarytool` credentials are needed.
 
 ### Building or running from Xcode
 
