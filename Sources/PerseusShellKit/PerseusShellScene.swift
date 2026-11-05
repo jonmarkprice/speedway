@@ -39,6 +39,13 @@ public struct PerseusShellScene: Scene {
                     .keyboardShortcut("o", modifiers: .command)
                 Button("Load Sample") { model.loadSample() }
                     .keyboardShortcut("l", modifiers: .command)
+                Divider()
+                // Edits to the open file are re-rendered as they are saved;
+                // Reload forces a re-read, for when auto-reload is off.
+                Button("Reload") { model.reloadFromDisk() }
+                    .keyboardShortcut("r", modifiers: .command)
+                    .disabled(model.watchedFileURL == nil)
+                Toggle("Reload When File Changes", isOn: $model.isAutoReloadEnabled)
             }
         }
     }

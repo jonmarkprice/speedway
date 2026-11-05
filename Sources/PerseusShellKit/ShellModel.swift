@@ -93,6 +93,22 @@ final class ShellModel: ObservableObject {
     /// The most recent load or bridge failure, shown at the bottom of the sidebar.
     @Published var lastError: String?
 
+    /// The file on disk the page is currently showing, if it came from Open…
+    /// rather than the bundled sample. This is what gets watched and reloaded.
+    @Published private(set) var watchedFileURL: URL?
+    /// Whether edits to the open file are picked up automatically. Toggled from
+    /// the File menu; Reload (⌘R) works regardless.
+    @Published var isAutoReloadEnabled = true {
+        didSet { syncWatcher() }
+    }
+    /// When the open file was last (re)loaded from disk, for the sidebar footer.
+    @Published private(set) var lastLoadedAt: Date?
+
+    private var watcher: FileWatcher?
+    /// The bytes last handed to the page, so a save that did not change the
+    /// content (or an attribute-only event) does not re-render anything.
+    private var loadedData: Data?
+
     /// Set by `WebView` once the view exists. Weak because the view hierarchy
     /// owns the web view; the model only borrows it to run scripts.
     weak var webView: WKWebView?
@@ -158,17 +174,119 @@ final class ShellModel: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else {
             return
         }
-        do {
-            let raw = try String(contentsOf: url, encoding: .utf8)
-            loadJson(raw: raw, name: url.lastPathComponent)
-        } catch {
-            lastError = "Could not read \(url.lastPathComponent): \(error.localizedDescription)"
+        open(url)
+    }
+
+    /// Reads `url`, renders it, and starts watching it for edits.
+    func open(_ url: URL) {
+        stopWatching()
+        watchedFileURL = url
+        loadedData = nil
+        if load(from: url, preservingScroll: false) {
+            syncWatcher()
         }
+    }
+
+    /// Re-reads the open file right now, whether or not auto-reload is on.
+    func reloadFromDisk() {
+        guard let url = watchedFileURL else { return }
+        loadedData = nil
+        _ = load(from: url, preservingScroll: true)
     }
 
     func loadSample() {
         Diagnostics.stdout("bridge -> loadSample()")
+        // The sample lives in the bundle, so there is no file left to watch.
+        stopWatching()
+        watchedFileURL = nil
+        loadedData = nil
+        lastLoadedAt = nil
         call("loadSample", arguments: [])
+    }
+
+    // MARK: Watching the open file
+
+    /// Starts or stops the watcher so it matches `watchedFileURL` and the
+    /// auto-reload setting.
+    private func syncWatcher() {
+        guard isAutoReloadEnabled, let url = watchedFileURL else {
+            stopWatching()
+            return
+        }
+        guard watcher?.url != url else { return }
+        stopWatching()
+        watcher = FileWatcher(url: url) { [weak self] event in
+            self?.handleFileEvent(event)
+        }
+        if watcher == nil {
+            lastError = "Could not watch \(url.lastPathComponent) for changes."
+            Diagnostics.stderr(lastError ?? "")
+        } else {
+            Diagnostics.stdout("watching \(url.path)")
+        }
+    }
+
+    private func stopWatching() {
+        watcher?.stop()
+        watcher = nil
+    }
+
+    private func handleFileEvent(_ event: FileWatcher.Event) {
+        guard let url = watchedFileURL else { return }
+        switch event {
+        case .changed:
+            _ = load(from: url, preservingScroll: true)
+        case .disappeared:
+            stopWatching()
+            lastError = "\(url.lastPathComponent) was moved or deleted; no longer watching it."
+            Diagnostics.stderr(lastError ?? "")
+        }
+    }
+
+    /// Reads the file and hands it to the page unless its bytes are identical
+    /// to what the page already shows. Returns false if the file could not be
+    /// read or decoded; the error is shown in the sidebar.
+    @discardableResult
+    private func load(from url: URL, preservingScroll: Bool) -> Bool {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            lastError = "Could not read \(url.lastPathComponent): \(error.localizedDescription)"
+            Diagnostics.stderr(lastError ?? "")
+            return false
+        }
+        if data == loadedData {
+            Diagnostics.stdout("unchanged \(url.lastPathComponent); not reloading")
+            return true
+        }
+        guard let raw = String(data: data, encoding: .utf8) else {
+            lastError = "Could not read \(url.lastPathComponent): the file is not UTF-8 text."
+            Diagnostics.stderr(lastError ?? "")
+            return false
+        }
+        loadedData = data
+        lastLoadedAt = Date()
+        if preservingScroll {
+            reloadJson(raw: raw, name: url.lastPathComponent)
+        } else {
+            loadJson(raw: raw, name: url.lastPathComponent)
+        }
+        return true
+    }
+
+    /// Like `loadJson`, but keeps the page's scroll position, so re-rendering
+    /// after an edit does not throw the user back to the top. The restore runs
+    /// on the next animation frame, after React has committed the new cards.
+    private func reloadJson(raw: String, name: String) {
+        Diagnostics.stdout("bridge -> loadJson(\(Self.jsonLine(name)), \(raw.utf8.count) bytes, reload)")
+        let args = [raw, name].map(Self.jsonLine).joined(separator: ", ")
+        run(bridgeScript: """
+            var el = document.scrollingElement || document.documentElement;
+            var x = el.scrollLeft, y = el.scrollTop;
+            api.loadJson(\(args));
+            requestAnimationFrame(function () { el.scrollTo(x, y); });
+            """, name: "loadJson")
     }
 
     func scrollToItem(_ index: Int) {
@@ -180,16 +298,22 @@ final class ShellModel: ObservableObject {
     /// bridge has been registered so a click before the page is ready produces
     /// a readable error instead of a JavaScript TypeError.
     private func call(_ name: String, arguments: [Any]) {
+        let args = arguments.map(Self.jsonLine).joined(separator: ", ")
+        run(bridgeScript: "api.\(name)(\(args));", name: name)
+    }
+
+    /// Runs `body` with `api` bound to `window.perseusShell`, after checking
+    /// that `api.<name>` exists so the failure mode is a sidebar message.
+    private func run(bridgeScript body: String, name: String) {
         guard let webView else {
             lastError = "The web view is not available."
             return
         }
-        let args = arguments.map(Self.jsonLine).joined(separator: ", ")
         let script = """
         (function () {
             var api = window.perseusShell;
             if (!api || typeof api.\(name) !== "function") { return "unavailable"; }
-            api.\(name)(\(args));
+            \(body)
             return "ok";
         })()
         """

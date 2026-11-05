@@ -51,9 +51,25 @@ Under `Sources/PerseusShellKit/`:
 | `ContentView.swift` | `NavigationSplitView`: sidebar list of items (✓/✗ once scored, score message as tooltip), toolbar with Open… and Load sample, window subtitle with file name and item count. |
 | `WebView.swift` | `NSViewRepresentable` around `WKWebView`. Registers the scheme handler and the `shell` message handler, enables the inspector, loads `perseus://app/index.html`. |
 | `PerseusSchemeHandler.swift` | `WKURLSchemeHandler` for `perseus://app/<path>`: maps to files in the `Web` folder, sets MIME types, returns a real 404 for anything missing. |
-| `ShellModel.swift` | `ObservableObject` holding items, scores, file name and errors; decodes incoming messages; sends `loadJson`, `loadSample`, `scrollToItem` to the page. |
+| `ShellModel.swift` | `ObservableObject` holding items, scores, file name and errors; decodes incoming messages; sends `loadJson`, `loadSample`, `scrollToItem` to the page. Owns the `FileWatcher` for the open file and reloads it on change. |
+| `FileWatcher.swift` | Vnode `DispatchSource` on the open file. Debounces bursts of events and reopens the path after an atomic save (write temp, rename over) replaces the inode, so every editor's save style is seen. |
 | `WebBundle.swift` | Finds `Resources/Web/index.html` in `Bundle.module` (flat when built by SwiftPM, `Contents/Resources` when built by Xcode) or produces the "run build-web.sh" error. |
 | `Diagnostics.swift` | Unbuffered stdout/stderr logging so lines survive the process being killed. |
+
+## Live reload of the open file
+
+Once a `.json` file is opened (toolbar or ⌘O) the shell watches it and
+re-renders the page every time it is saved, so you can edit Perseus JSON in
+your editor with the app beside it. The reload keeps the page's scroll
+position; a file that is mid-edit and not valid JSON leaves the previous
+render in place and shows the parse error in the sidebar until the next save.
+Saves that do not change the bytes are ignored.
+
+- **File > Reload When File Changes** (checked by default) turns watching off
+  and on. **File > Reload** (⌘R) re-reads the file on demand either way.
+- The sidebar footer shows the watch state and when the file was last read.
+- If the file is moved or deleted, watching stops and the sidebar says so.
+  Loading the bundled sample also stops watching, since it is not on disk.
 
 ## How the bridge works
 

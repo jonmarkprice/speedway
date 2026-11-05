@@ -65,7 +65,30 @@ struct ContentView: View {
                     .textSelection(.enabled)
                     .padding(10)
             }
+            if model.watchedFileURL != nil {
+                Divider()
+                watchStatus
+                    .padding(10)
+            }
         }
+    }
+
+    /// Footer under the item list: whether edits to the open file are being
+    /// picked up, and when it was last read from disk.
+    private var watchStatus: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Label(
+                model.isAutoReloadEnabled ? "Reloading on save" : "Auto-reload off",
+                systemImage: model.isAutoReloadEnabled ? "arrow.triangle.2.circlepath" : "pause.circle"
+            )
+            if let at = model.lastLoadedAt {
+                Text("Loaded \(at, format: .dateTime.hour().minute().second())")
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .help("Edits to the open file re-render the page. Toggle in File > Reload When File Changes.")
     }
 }
 
